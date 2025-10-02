@@ -205,6 +205,14 @@ async def get_events(
     return text_output
 
 
+def sanitize_log_input(value: str) -> str:
+    """
+    Sanitize input string for safe logging by escaping newlines and carriage returns.
+    """
+    if not isinstance(value, str):
+        return value
+    return value.replace('\n', '\\n').replace('\r', '\\r')
+
 @mcp.tool()
 @handle_http_errors("create_event")
 async def create_event(
@@ -287,10 +295,12 @@ async def create_event(
                 # Match /d/<id>, /file/d/<id>, ?id=<id>
                 match = re.search(r"(?:/d/|/file/d/|id=)([\w-]+)", att)
                 file_id = match.group(1) if match else None
-                logger.info(f"[create_event] Extracted file_id '{file_id}' from attachment URL '{att}'")
+                safe_att = sanitize_log_input(att)
+                logger.info(f"[create_event] Extracted file_id '{file_id}' from attachment URL '{safe_att}'")
             else:
                 file_id = att
-                logger.info(f"[create_event] Using direct file_id '{file_id}' for attachment")
+                safe_att = sanitize_log_input(file_id)
+                logger.info(f"[create_event] Using direct file_id '{safe_att}' for attachment")
             if file_id:
                 file_url = f"https://drive.google.com/open?id={file_id}"
                 mime_type = "application/vnd.google-apps.drive-sdk"
